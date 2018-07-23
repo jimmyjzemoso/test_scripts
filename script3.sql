@@ -28,28 +28,32 @@ FROM (
 
 
 
+
 2=>
+INSERT OVERWRITE udm_p_customer
+SELECT ${columns:customer::c.%1$s AS %1$S}
+FROM (
 
-
-SELECT 
-	${columns:customer::c.%1$s AS %1$S},
-	ts.MasterCustomerID,
-	o.Name AS c_PrimaryStore,
-	ROW_NUMBER() OVER(PARTITION BY MasterCustomerID ORDER BY transactiontimestamp DESC) AS ROWNUM
-FROM(
 	SELECT 
-		sourceTransactionNumber,
-		MasterCustomerID,
-		OrganizationId,
-		MIN(transactiontimestamp) as transactiontimestamp
-	FROM udm_pv_transactionsummery
-	GROUP BY sourceTransactionNumber,MasterCustomerID,OrganizationId
-	)ts
-INNER JOIN (
-	SELECT ID,Name
-	FROM udm_pv_organization
-	WHERE COALESCE(Type,"")<>"Digital"
-	) o
-ON o.ID = ts.OrganizationId
-)
-WHERE COALESCE(ROWNUM,0) BETWEEN 1 AND 6
+		${columns:customer::t1%1$s AS %1$S},
+		ts.MasterCustomerID,
+		o.Name AS c_PrimaryStore,
+		ROW_NUMBER() OVER(PARTITION BY MasterCustomerID ORDER BY transactiontimestamp DESC) AS ROWNUM
+	FROM(
+		SELECT 
+			sourceTransactionNumber,
+			MasterCustomerID,
+			OrganizationId,
+			MIN(transactiontimestamp) as transactiontimestamp
+		FROM udm_pv_transactionsummery
+		GROUP BY sourceTransactionNumber,MasterCustomerID,OrganizationId
+		)ts
+	INNER JOIN (
+		SELECT ID,Name
+		FROM udm_pv_organization
+		WHERE COALESCE(Type,"")<>"Digital"
+		) o
+	ON o.ID = ts.OrganizationId
+	)t1
+	WHERE COALESCE(ROWNUM,0) BETWEEN 1 AND 6
+)c
